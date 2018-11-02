@@ -1,7 +1,11 @@
 var micio;
 var mic;
 var vol;
+
 var sfondo;
+var ground;
+var titolo;
+
 var typeCodes = ['A', 'B', 'C', 'D'];
 var quadroA, quadroB, quadroC, quadroD;
 var obstacleArray = [];
@@ -13,10 +17,13 @@ var playerCurrentX=200;
 var playerCurrentY;
 var pause=false;
 var punteggio=0;
+var gameover=false;
 
 function preload() {
   micio = loadImage('./assets/urlo.png');
   sfondo = loadImage('./assets/sfondo.jpg');
+  ground = loadImage('./assets/prato.png');
+  titolo = loadImage('./assets/titolo.png');
 
   quadroA = loadImage('./assets/quadro1.png');
   quadroB = loadImage('./assets/quadro2.png');
@@ -44,42 +51,43 @@ function setup(){
 }
 
 function draw(){
-  vol = mic.getLevel();
-  image(sfondo, 0, 0);
-  fill('white');
-  textSize(30);
-  textFont('Rock Salt');
-  text('screm to jump and avoid the paintings', width/2, 700);
-  textAlign(CENTER);
+  if(!gameover){
+    vol = mic.getLevel();
 
-  push();
-  stroke('blue');
-  strokeWeight(3);
-  line(0, floorLine, 1200, floorLine);
-  pop();
+    image(sfondo, 0, 0);
+    image(ground, 0, height-ground.height);
+    image(titolo, (width-titolo.width)-50, 50);
 
+    fill('black');
+    textSize(30);
+    textStyle(BOLD);
+    textFont('Rubik');
+    text('Scream to jump and avoid the paintings', width/2, 700);
+    textAlign(CENTER);
 
+    munch.display();
 
-  munch.display();
-
-
-  for(var i=0; i<obstacleArray.length-1; i++){
-    obstacleArray[i].display();
-    if(!pause){
-      obstacleArray[i].move();
-      obstacleArray[i].checkCollision();
+    for(var i=0; i<obstacleArray.length-1; i++){
+      obstacleArray[i].display();
+      if(!pause){
+        obstacleArray[i].move();
+        obstacleArray[i].checkCollision();
+      }
+      if(obstacleArray[i].x>=(width-(minObstacleDist+img.width))) {
+        break;
+      }
     }
-    if(obstacleArray[i].x>=(width-(minObstacleDist+img.width))) {
-      break;
-    }
-  }
 
-  /*if(frameCount%2==0){ //ogni 2 frame
-  obstacleArray[0].move();
-}*/
+    /*if(frameCount%2==0){ //ogni 2 frame
+    obstacleArray[0].move();
+  }*/
 
-text(punteggio, 100, 100);
+  textSize(60);
+  text(punteggio, 100, 100);
 
+}else{
+  gameover=true;
+}
 }
 
 function player() {
@@ -89,21 +97,21 @@ function player() {
   this.display = function(){
 
     if(!pause){
-    var currentHeight=floorLine-micio.height;
-    this.y=currentHeight;
-    playerCurrentY=this.y;
-    if(vol>0.02) {
-      if(vol<0.15){
-        currentHeight-=vol*2500;
-      }else{
-        currentHeight-=floorLine-micio.height;
-      }
+      var currentHeight=floorLine-micio.height;
       this.y=currentHeight;
-      playerCurrentY=this.y; //salvo nella variabile globaler playerCurrentY il valore attuale della y
+      playerCurrentY=this.y;
+      if(vol>0.02) {
+        if(vol<0.15){
+          currentHeight-=vol*2500;
+        }else{
+          currentHeight-=floorLine-micio.height;
+        }
+        this.y=currentHeight;
+        playerCurrentY=this.y; //salvo nella variabile globaler playerCurrentY il valore attuale della y
+      }
+    }else{
+      currentHeight=playerCurrentY; //prendo dalla variabile globale l'ultimo valore della y
     }
- }else{
-    currentHeight=playerCurrentY; //prendo dalla variabile globale l'ultimo valore della y
-  }
     image(micio, playerCurrentX, currentHeight);
   }
 }
@@ -112,9 +120,8 @@ function obstacle(typeCode) {
   this.type = typeCode; //typeCode è un valore di A, B o C
   this.x = width;
   this.y = floorLine;
-  this.speed = random(2,4);
+  this.speed = random(5,10);
   this.yTop = 20;
-
 
   this.display = function() {
 
@@ -153,41 +160,47 @@ function obstacle(typeCode) {
   this.checkCollision = function() {
 
     if(imgTop==undefined){
+      if((playerCurrentX+micio.width<this.x||
+        playerCurrentX>this.x+img.width||
+        playerCurrentY+micio.height<this.y||
+        playerCurrentY>this.y+img.height
+      )
+    ){
+      //no collision
+    }else{
+      textAlign(CENTER);
+      textSize(90);
+      text('Click to restart', width/2, height/2);
+      gameover=true;
+      pause=true;
+    }
+  } else {
     if((playerCurrentX+micio.width<this.x||
       playerCurrentX>this.x+img.width||
       playerCurrentY+micio.height<this.y||
       playerCurrentY>this.y+img.height
+    ) && (playerCurrentX+micio.width<this.x||
+      playerCurrentX>this.x+imgTop.width||
+      playerCurrentY+micio.height<this.yTop||
+      playerCurrentY>this.yTop+imgTop.height
     )
   ){
     //no collision
   }else{
+    textAlign(CENTER);
+    textSize(90);
+    text('Click to restart', width/2, height/2);
+    gameover=true;
     pause=true;
   }
-} else {
-  if((playerCurrentX+micio.width<this.x||
-    playerCurrentX>this.x+img.width||
-    playerCurrentY+micio.height<this.y||
-    playerCurrentY>this.y+img.height
-  ) && (playerCurrentX+micio.width<this.x||
-    playerCurrentX>this.x+imgTop.width||
-    playerCurrentY+micio.height<this.yTop||
-    playerCurrentY>this.yTop+imgTop.height
-  )
-  ){
-  //no collision
-  }else{
-  pause=true;
-  }
 }
 }
-
 }
 
 function removeObstacle() {
   console.log('cancello');
   obstacleArray.shift();
   punteggio++;
-
 }
 
 function insertNewObstacle() {
@@ -196,3 +209,8 @@ function insertNewObstacle() {
   var o = new obstacle(typeCodes[indice]);
   obstacleArray.push(o);
 }
+
+function mouseClicked() {
+  if(gameover){
+    location.reload()}
+  }
